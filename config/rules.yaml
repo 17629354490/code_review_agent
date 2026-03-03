@@ -1,0 +1,37 @@
+# 默认规则集 - 代码审查智能体
+# 用于 LLM Prompt 与后续静态分析扩展
+
+rule_set:
+  name: default
+  description: 通用代码审查规则（正确性、规范、安全、性能）
+
+rules:
+  - rule_id: correctness
+    name: 正确性
+    description: 检查逻辑错误、空指针/越界风险、异常处理缺失
+    severity: high
+    enabled: true
+
+  - rule_id: readability
+    name: 可读性与可维护性
+    description: 命名、注释、复杂度、重复代码
+    severity: medium
+    enabled: true
+
+  - rule_id: style
+    name: 规范与风格
+    description: 与项目/团队约定一致的编码规范
+    severity: medium
+    enabled: true
+
+  - rule_id: security
+    name: 安全
+    description: 常见漏洞模式（注入、敏感信息泄露、不安全依赖等）
+    severity: high
+    enabled: true
+
+  - rule_id: performance
+    name: 性能
+    description: 明显低效写法、资源泄漏风险
+    severity: medium
+    enabled: true
