@@ -1,6 +1,6 @@
 """报告服务：生成 Markdown/JSON 报告并持久化。"""
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.config import settings
 from app.core.models import Issue, ReviewReport, Severity
@@ -61,7 +61,7 @@ class ReportService:
             summary=summary,
             issues=issues,
             raw_markdown=raw_md,
-            completed_at=datetime.utcnow(),
+            completed_at=datetime.now(timezone.utc),
         )
 
     def save_report(self, report: ReviewReport) -> str:

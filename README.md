@@ -5,6 +5,7 @@
 ## 功能概览
 
 - **API**：`POST /api/v1/review/trigger` 提交 diff 触发审查，`GET /api/v1/review/tasks/{id}` 查状态，`GET /api/v1/review/reports/{id}` 取报告
+- **远程仓库扫描**：`POST /api/v1/review/scan-repo` 传入 `repo_url`（如 `https://github.com/owner/repo`）自动拉取代码并入队审查；CLI `scan-repo <repo_url>` 支持本地审查或调用 API
 - **Webhook**：`POST /api/v1/webhook/github`、`/api/v1/webhook/gitlab` 接收 PR/MR 事件（MVP 仅创建任务，不拉取 diff）
 - **CLI**：本地直接调用 LLM 审查 diff，或向已启动的服务发起触发请求
 - **规则**：`config/rules.yaml` 配置审查维度，供 LLM Prompt 使用
@@ -77,6 +78,33 @@ python -m cli.main review --diff change.diff -o report.md
 python -m cli.main trigger --diff change.diff --repo owner/repo --pr 42
 ```
 
+### CLI 扫描远程仓库（如 report_agent）
+
+支持三种模式：`full` 全量、`latest_commit` 仅最新一次提交增量、`paths` 仅指定文件/目录。
+
+```bash
+# 全量扫描
+python -m cli.main scan-repo https://github.com/17629354490/report_agent -o report.md
+
+# 仅扫描最新一次提交的变更（增量）
+python -m cli.main scan-repo https://github.com/17629354490/report_agent --mode latest_commit -o report.md
+
+# 仅扫描指定目录/文件
+python -m cli.main scan-repo https://github.com/17629354490/report_agent --mode paths --paths "app/,cli/main.py" -o report.md
+
+# 通过已启动的 API 服务扫描（不占用本地 LLM）
+python -m cli.main scan-repo https://github.com/17629354490/report_agent --api-url http://127.0.0.1:8000
+```
+
+## 测试
+
+```bash
+pip install -r requirements.txt
+python -m pytest tests/ -v
+```
+
+详见 `tests/`：报告服务、审查 API、LLM 解析、仓库扫描器。对 [report_agent](https://github.com/17629354490/report_agent) 的扫描报告与更多测试示例见 `docs/report_agent_scan_report.md`。
+
 ## 项目结构
 
 ```
@@ -108,4 +136,4 @@ code_review_agent/
 
 ## 许可证
 
-MIT
+MIT，详见 [LICENSE](LICENSE)。

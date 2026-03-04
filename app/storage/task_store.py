@@ -1,5 +1,5 @@
 """任务存储（MVP：内存），记录任务状态与元数据。"""
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 import uuid
 
@@ -33,7 +33,7 @@ class TaskStore:
             "branch": branch,
             "diff_content": diff_content,
             "status": TaskStatus.PENDING.value,
-            "triggered_at": datetime.utcnow().isoformat(),
+            "triggered_at": datetime.now(timezone.utc).isoformat(),
             "completed_at": None,
             "report_url": None,
             "error_message": None,
@@ -55,7 +55,7 @@ class TaskStore:
             return
         r["status"] = status.value
         if status in (TaskStatus.COMPLETED, TaskStatus.FAILED):
-            r["completed_at"] = datetime.utcnow().isoformat()
+            r["completed_at"] = datetime.now(timezone.utc).isoformat()
         if report_url is not None:
             r["report_url"] = report_url
         if error_message is not None:

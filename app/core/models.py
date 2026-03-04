@@ -1,5 +1,5 @@
 """API 与内部使用的数据模型。"""
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
@@ -43,6 +43,24 @@ class ReviewTaskRequest(BaseModel):
     diff_url: str | None = Field(None, description="diff 的 URL（可选）")
 
 
+class ScanRepoRequest(BaseModel):
+    """扫描远程仓库并触发审查的请求体。"""
+    repo_url: str = Field(..., description="仓库地址，如 https://github.com/owner/repo 或 owner/repo")
+    branch: str = Field("main", description="分支名")
+    mode: str = Field(
+        "full",
+        description="扫描模式：full 全量 | latest_commit 仅最新一次提交增量 | paths 仅指定文件/目录",
+    )
+    paths: list[str] | None = Field(
+        None,
+        description="mode=paths 时必填，如 ['app/', 'cli/main.py']",
+    )
+    commit_ref: str | None = Field(
+        None,
+        description="mode=latest_commit 时可选，指定分支名或 commit SHA，默认用 branch",
+    )
+
+
 class ReviewTaskResponse(BaseModel):
     """触发审查的响应。"""
     task_id: str
@@ -72,4 +90,4 @@ class ReviewReport(BaseModel):
     summary: dict[str, Any] = Field(default_factory=dict)  # 统计：按严重程度、规则等
     issues: list[Issue] = Field(default_factory=list)
     raw_markdown: str | None = None
-    completed_at: datetime = Field(default_factory=datetime.utcnow)
+    completed_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

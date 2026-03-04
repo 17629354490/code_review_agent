@@ -7,10 +7,12 @@ from app.core.models import (
     ReviewTaskRequest,
     ReviewTaskResponse,
     ReviewTaskStatus,
+    ScanRepoRequest,
     TaskStatus,
 )
 from app.storage.task_store import get_task_store
 from app.services.report_service import get_report_service
+from app.services.repo_scanner import scan_repo_to_diff
 
 router = APIRouter(prefix="/review", tags=["review"])
 
@@ -40,6 +42,46 @@ async def trigger_review(
         task_id=task_id,
         status=TaskStatus.PENDING,
         message="任务已入队，请通过 GET /review/tasks/{task_id} 查询状态与报告。",
+    )
+
+
+@router.post("/scan-repo", response_model=ReviewTaskResponse)
+async def scan_repo(
+    body: ScanRepoRequest,
+    _: None = Depends(require_api_key),
+) -> ReviewTaskResponse:
+    """扫描远程 GitHub 仓库（全量/最新提交增量/指定文件或目录），入队审查任务。"""
+    if body.mode == "paths" and (not body.paths or not [p for p in body.paths if (p or "").strip()]):
+        raise HTTPException(status_code=400, detail="mode=paths 时请提供 paths（如 ['app/', 'cli/main.py']）")
+    try:
+        diff_content, repo_slug = scan_repo_to_diff(
+            repo_url=body.repo_url,
+            branch=body.branch,
+            mode=body.mode,
+            paths=body.paths,
+            commit_ref=body.commit_ref,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"拉取仓库失败: {e}")
+    if not diff_content.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="未获取到可审查内容（全量：无目标文件；增量：该提交无变更或无可审查文件；paths：路径下无匹配文件）",
+        )
+    store = get_task_store()
+    task_id = store.create(
+        repo=repo_slug,
+        pr_id=None,
+        commit_sha=None,
+        branch=body.branch,
+        diff_content=diff_content,
+    )
+    return ReviewTaskResponse(
+        task_id=task_id,
+        status=TaskStatus.PENDING,
+        message=f"仓库 {repo_slug} 已扫描并入队，请通过 GET /review/tasks/{task_id} 查询状态与报告。",
     )
 
 
